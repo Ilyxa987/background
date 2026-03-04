@@ -1,5 +1,7 @@
 package com.example.background
 
+import android.content.ContentResolver
+
 interface InfoProvider {
-    fun sendInfo(): Boolean
+    suspend fun sendInfo(resolver: ContentResolver): Boolean
 }

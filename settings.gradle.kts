@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "background"
 include(":app")
+include(":spyplugin")
