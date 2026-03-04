@@ -1,5 +1,6 @@
 package com.example.background
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -44,7 +45,16 @@ class MainActivity : ComponentActivity() {
         val stop_button = findViewById<Button>(R.id.buttonStop)
 
         Log.d("Main", "Активность запущена")
-        requestContactPermission()
+        //requestContactPermission()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.READ_SMS),
+                100
+            )
+        }
         start_button.setOnClickListener {
             requestContactPermission()
             textView.text = getString(R.string.text_start)

