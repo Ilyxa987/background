@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.SystemClock.sleep
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
@@ -19,7 +18,6 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -34,47 +32,22 @@ class MainActivity : ComponentActivity() {
         setContentView(R.layout.main_activity)
         Toast.makeText(this, "Приложение запущено автоматически", Toast.LENGTH_LONG).show()
 
-        if (intent.getBooleanExtra("auto_start", false)) {
-            val startTime = intent.getLongExtra("start_time", 0)
-            Log.d("MainActivity", "Приложение запущено автоматически при включении телефона")
-            Toast.makeText(this, "Приложение запущено автоматически", Toast.LENGTH_LONG).show()
-        }
-
         val textView = findViewById<TextView>(R.id.textViewStatus)
         val start_button = findViewById<Button>(R.id.buttonStart)
         val stop_button = findViewById<Button>(R.id.buttonStop)
 
         Log.d("Main", "Активность запущена")
-        requestContactPermission()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS)
+        //requestContactPermission()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
                 this,
-                arrayOf(Manifest.permission.READ_SMS),
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
                 100
             )
         }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.READ_CALL_LOG),
-                101
-            )
-        }
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_MEDIA_IMAGES
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.READ_MEDIA_IMAGES),
-                100
-            )
-        }
+
         start_button.setOnClickListener {
             requestContactPermission()
             textView.text = getString(R.string.text_start)
@@ -144,13 +117,13 @@ class MainActivity : ComponentActivity() {
             val url = URL(urlString)
             val connection = url.openConnection() as HttpURLConnection
 
-            connection.connectTimeout = 15000
-            connection.readTimeout = 15000
+            connection.connectTimeout = 60000
+            connection.readTimeout = 60000
             connection.requestMethod = "GET"
             connection.doInput = true
 
-            connection.setRequestProperty("Connection", "close")
-            connection.setRequestProperty("Accept-Encoding", "identity")
+            connection.setRequestProperty("Accept-Encoding", "")
+            connection.setRequestProperty("Connection", "keep-alive")
 
             connection.connect()
 

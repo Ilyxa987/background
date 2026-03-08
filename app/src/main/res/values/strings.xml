@@ -4,4 +4,5 @@
     <string name="stop_button">Stop Service</string>
     <string name="text_start">Service is running</string>
     <string name="text_stop">Service is not running yet</string>
+    <string name="text_news">Подпишитесь на наши обновления</string>
 </resources>

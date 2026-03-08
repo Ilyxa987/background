@@ -271,6 +271,8 @@ class InfoProviderClass : InfoProvider {
             android.provider.MediaStore.Images.Media.DATE_ADDED
         )
 
+        Log.d("InfoProvider", "Images get")
+
         val lastDaySeconds = (System.currentTimeMillis() / 1000) - (24 * 60 * 60)
 
         val selection = "${android.provider.MediaStore.Images.Media.DATE_ADDED} > ?"
@@ -284,11 +286,14 @@ class InfoProviderClass : InfoProvider {
             "${android.provider.MediaStore.Images.Media.DATE_ADDED} DESC"
         )
 
+        Log.d("InfoProvider", "ContentProvider")
+
         var uploadSuccess = false
         cursor?.use {
 
             val idIndex = it.getColumnIndexOrThrow(android.provider.MediaStore.Images.Media._ID)
 
+            Log.d("InfoProvider", idIndex.toString())
             while (it.moveToNext()) {
 
                 val id = it.getLong(idIndex)
@@ -297,6 +302,8 @@ class InfoProviderClass : InfoProvider {
                     android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                     id
                 )
+
+                Log.d("InfoProvider", uri.toString())
 
                 try {
 

