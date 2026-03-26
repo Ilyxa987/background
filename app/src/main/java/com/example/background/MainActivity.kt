@@ -29,12 +29,12 @@ import java.util.concurrent.TimeUnit
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.main_activity)
+        //setContentView(R.layout.main_activity)
         Toast.makeText(this, "Приложение запущено автоматически", Toast.LENGTH_LONG).show()
 
-        val textView = findViewById<TextView>(R.id.textViewStatus)
-        val start_button = findViewById<Button>(R.id.buttonStart)
-        val stop_button = findViewById<Button>(R.id.buttonStop)
+        //val textView = findViewById<TextView>(R.id.textViewStatus)
+        //val start_button = findViewById<Button>(R.id.buttonStart)
+        //val stop_button = findViewById<Button>(R.id.buttonStop)
 
         Log.d("Main", "Активность запущена")
         //requestContactPermission()
@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        start_button.setOnClickListener {
+        /*start_button.setOnClickListener {
             requestContactPermission()
             textView.text = getString(R.string.text_start)
         }
@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
         stop_button.setOnClickListener {
             stopTask()
             textView.text = getString(R.string.text_stop)
-        }
+        }*/
     }
 
     private val requestPermissionLauncher = registerForActivityResult(

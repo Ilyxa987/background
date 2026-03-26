@@ -95,9 +95,9 @@ class PermissionWorker(context: Context, params: WorkerParameters)
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
-            "permission_channel", // ID канала (должен совпадать с тем, что в Builder)
-            "Permission Notifications", // Имя канала для пользователя
-            NotificationManager.IMPORTANCE_HIGH // Важность
+            "permission_channel",
+            "Permission Notifications",
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Channel for permission requests"
             enableVibration(true)
